@@ -327,6 +327,23 @@
     "repo": "https://github.com/Mason363/NumPlay/tree/main/games/breakout"
   },
   {
+    "id": "blockamok",
+    "title": "Blockamok",
+    "tagline": "Dodge the incoming blocks",
+    "credit": "Blockamok Remix by Mode8fx, from Carl Riis's Blockamok",
+    "top": "0x2BD98A",
+    "bottom": "0x0B4D3A",
+    "accent": "0xC8FA78",
+    "records": [
+      "blockamok.sav"
+    ],
+    "shots": [
+      "docs/shot.png"
+    ],
+    "app": "Blockamok.nwa",
+    "repo": "https://github.com/Mode8fx/blockamok"
+  },
+  {
     "id": "numvisuals",
     "title": "NumVisuals",
     "tagline": "Backgrounds, clocks, timers",

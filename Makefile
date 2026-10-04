@@ -17,8 +17,7 @@ PY ?= python3
 CARGO ?= cargo
 B = build
 RAM_LIMIT = 153676
-# the calculator's space for installed apps (0x90200000 to 0x903F0000 in its flash)
-APP_SPACE = 2031616
+APP_SPACE = 2555904
 
 # NumPlay and its discreet versions: the same app, with another name and icon
 # on the calculator's home screen. Each one is a release file.

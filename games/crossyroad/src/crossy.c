@@ -874,6 +874,30 @@ static int random_bit(uint16_t mask) {
   return 4;
 }
 
+static int top_bit(uint16_t m) {
+  int b = 0;
+  for (int i = 0; i < 9; i++)
+    if (m >> i & 1) b = i;
+  return b;
+}
+
+static int bit_count(uint16_t m) {
+  int n = 0;
+  for (int i = 0; i < 9; i++) n += m >> i & 1;
+  return n;
+}
+
+static uint16_t flow_reach(uint16_t m, int dir) {
+  if (!m) return m;
+  if (dir > 0) return (uint16_t)(ALLPLAY & ~((m & -m) - 1));
+  return (uint16_t)(((2 << top_bit(m)) - 1) & ALLPLAY);
+}
+
+static uint16_t margin(uint16_t m, int dir) {
+  if (!(m & (m - 1))) return m;
+  return dir > 0 ? (uint16_t)(m & (m - 1)) : (uint16_t)(m & ~(1 << top_bit(m)));
+}
+
 static void new_set(int row) {
   int t, gp = row < 50 ? 90 : row < 100 ? 75 : row < 150 ? 50 : row < 200 ? 25 : 0;
   if (set_type == L_GRASS) t = kinds[1 + irand(3)];
@@ -924,7 +948,9 @@ static void gen_lane(void) {
     case L_GRASS: {
       int wall = row <= -4, open = row >= -3 && row <= 0;
       int p = obstacle_pct[row / 25 > 11 ? 11 : row / 25];
-      int keep = row <= 1 ? 4 : random_bit(reach_prev);
+      uint16_t from = reach_prev;
+      if (row > 1 && lane_at(row - 1)->type == L_RIVER) from = margin(from, lane_at(row - 1)->dir);
+      int keep = row <= 1 ? 4 : random_bit(from);
       for (int c = -NCOLS / 2; c <= NCOLS / 2; c++) {
         int edge = c < PLAY_MIN || c > PLAY_MAX, o = 0;
         if (edge) {
@@ -967,7 +993,8 @@ static void gen_lane(void) {
       break;
     }
     case L_RIVER: {
-      dir = prev_dir && irand(100) < 95 ? -prev_dir : (irand(2) ? 1 : -1);
+      dir = prev_dir ? -prev_dir : (irand(2) ? 1 : -1);
+      if (bit_count(flow_reach(reach_prev, dir)) < 3 && bit_count(flow_reach(reach_prev, -dir)) > bit_count(flow_reach(reach_prev, dir))) dir = -dir;
       L->speed = frand(1.33f, 3.0f);
       place_movers(L, L->speed * frand(2.5f, 3.0f));
       float maxlen = L->period / L->nobj - 1.2f;
@@ -977,11 +1004,13 @@ static void gen_lane(void) {
         L->obj[i].kind = (uint8_t)len;
         L->obj[i].coin = irand(100) < 5 ? (int8_t)irand(len) : -1;
       }
-      reach_prev = ALLPLAY;
+      reach_prev = flow_reach(reach_prev, dir);
       break;
     }
     case L_LILY: {
-      uint16_t pads = 1 << random_bit(reach_prev);
+      uint16_t from = reach_prev;
+      if (row > 1 && lane_at(row - 1)->type == L_RIVER) from = margin(from, lane_at(row - 1)->dir);
+      uint16_t pads = 1 << random_bit(from);
       int n = 1;
       for (int i = 0; i < 9 && n < 3; i++) {
         if (pads >> i & 1) continue;
@@ -995,7 +1024,7 @@ static void gen_lane(void) {
       for (int c = 0; c < NCOLS; c++)
         if ((c - COL0 < PLAY_MIN || c - COL0 > PLAY_MAX) && irand(100) < 12) L->cells[c] = O_PAD;
       if (irand(100) < 5) L->coin = (int8_t)(random_bit(pads) + PLAY_MIN);
-      reach_prev &= pads;
+      reach_prev = spread(reach_prev & pads, pads);
       break;
     }
     case L_RAIL: {
